@@ -1,5 +1,6 @@
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 
 morgan.token('postReq', function(req) {return JSON.stringify(req.body)})
@@ -15,6 +16,8 @@ const logger = morgan(function (tokens, req,res) {
     ].join(' ')
 })
 
+app.use(express.static('dist'))
+app.use(cors())
 app.use(express.json())
 app.use(logger)
 
@@ -57,7 +60,7 @@ app.post('/api/persons', (req, res) => {
         })
     }
 
-    const id = Math.floor(Math.random() * 100)
+    const id = randBetween(3, 1000)
     const person = {
         "name": body.name,
         "number": body.number,
@@ -89,6 +92,10 @@ app.get('/api/info', (req, res) => {
                 <div>${new Date()} </div>`)
 })
 
+const randBetween = (min, max) => {
+    const valinPituus = Math.abs(max-min)
+    return Math.floor(valinPituus * Math.random()) + min
+}
 
 const onkoTallennettu = (name) => {
     const bool = persons.find(p => p.name.toLowerCase() == name.toLowerCase())
