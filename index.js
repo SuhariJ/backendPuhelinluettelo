@@ -1,7 +1,12 @@
+require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
 const cors = require('cors')
 const app = express()
+const Person = require('./modules/person.js')
+
+
+
 
 morgan.token('postReq', function(req) {return JSON.stringify(req.body)})
 
@@ -39,16 +44,21 @@ app.get('/', (request, response) =>{
 })
 
 app.get('/api/persons', (request, response) =>{
-    response.json(persons) 
+    
+    Person.find({}).then(result => {
+        response.json(result) 
+    })
 })
 
 app.post('/api/persons', (req, res) => {
     const body = req.body
+    //onkoTallennettu ei toimi DB
     if(onkoTallennettu(body.name)){
         return res.status(400).json({
             error: "name must be unique"
         })
     }
+
     if(!body.name){
         return res.status(400).json({
             error: "name missing"
@@ -60,6 +70,16 @@ app.post('/api/persons', (req, res) => {
         })
     }
 
+    const person = new Person({
+        "name": body.name,
+        "number": body.number,
+    })
+
+    person.save().then(savedPerson => {
+        res.json(savedPerson)
+    })
+
+    /*
     const id = randBetween(3, 1000)
     const person = {
         "name": body.name,
@@ -69,15 +89,23 @@ app.post('/api/persons', (req, res) => {
     persons = persons.concat(person)
 
     res.json(person)
+    */
 })
 
 app.get('/api/persons/:id', (request, response) =>{
+    
+    Person.findById(request.params.id).then(result => {
+        response.json(result)
+    })
+
+    /*
     const person = persons.find(p => request.params.id == p.id)
     if(person){
         response.json(person)
     }else{
         response.status(404).end()
     }
+        */
 })
 
 app.delete('/api/persons/:id', (req,res) =>{
@@ -107,6 +135,6 @@ const onkoTallennettu = (name) => {
 }
 
 
-app.listen(3001, () =>{
+app.listen(process.env.PORT, () =>{
     console.log('Server running!')
 })
