@@ -7,7 +7,6 @@ const Person = require('./modules/person.js')
 
 
 
-
 morgan.token('postReq', function(req) {return JSON.stringify(req.body)})
 
 const logger = morgan(function (tokens, req,res) {
@@ -43,14 +42,15 @@ app.get('/', (request, response) =>{
     response.send('Hihii')
 })
 
-app.get('/api/persons', (request, response) =>{
+app.get('/api/persons', (request, response, next) =>{
     
     Person.find({}).then(result => {
         response.json(result) 
     })
+    .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body
     //onkoTallennettu ei toimi DB
     if(onkoTallennettu(body.name)){
@@ -78,46 +78,47 @@ app.post('/api/persons', (req, res) => {
     person.save().then(savedPerson => {
         res.json(savedPerson)
     })
-
-    /*
-    const id = randBetween(3, 1000)
-    const person = {
-        "name": body.name,
-        "number": body.number,
-        "id": id
-    }
-    persons = persons.concat(person)
-
-    res.json(person)
-    */
+    .catch(error => next(error))
 })
 
-app.get('/api/persons/:id', (request, response) =>{
+app.get('/api/persons/:id', (request, response, next) =>{
     
     Person.findById(request.params.id).then(result => {
         response.json(result)
     })
-
-    /*
-    const person = persons.find(p => request.params.id == p.id)
-    if(person){
-        response.json(person)
-    }else{
-        response.status(404).end()
-    }
-        */
+    .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req,res) =>{
-    const id = req.params.id
-    persons = persons.filter(p => p.id !== id)
-    res.status(204).end()
+app.delete('/api/persons/:id', (req,res, next) =>{
+    Person.findByIdAndDelete(req.params.id)
+        .then(result => {
+            res.status(204).end()
+        })
+        .catch(error => next(error))
+})
+
+app.put('/api/persons/:id', (req, res, next) => {
+    const body = req.body
+
+    const person = {
+        name: body.name,
+        number: body.number,
+    }
+
+    Person.findByIdAndUpdate(req.params.id, person, {new: true})
+        .then(updatedPerson => {
+            res.json(updatedPerson)
+        })
+        .catch(error => next(error))
 })
 
 app.get('/api/info', (req, res) => {
-    const count = persons.length
-    res.send(`<p> this page has info for ${count} people </p>
+
+    Person.countDocuments({})
+        .then(result => {
+            res.send(`<p> this page has info for ${result} people </p>
                 <div>${new Date()} </div>`)
+        })
 })
 
 const randBetween = (min, max) => {
@@ -134,6 +135,15 @@ const onkoTallennettu = (name) => {
     
 }
 
+const errorHandler = (error, request, response, next) => {
+    console.log(error.message)
+
+    if (error.name === 'CastError') {
+        return response.status(400).send({ error: 'malformatted id' })
+      }
+    
+      next(error)
+}
 
 app.listen(process.env.PORT, () =>{
     console.log('Server running!')
