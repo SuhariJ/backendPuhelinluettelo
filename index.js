@@ -52,23 +52,6 @@ app.get('/api/persons', (request, response, next) =>{
 
 app.post('/api/persons', (req, res, next) => {
     const body = req.body
-    //onkoTallennettu ei toimi DB
-    if(onkoTallennettu(body.name)){
-        return res.status(400).json({
-            error: "name must be unique"
-        })
-    }
-
-    if(!body.name){
-        return res.status(400).json({
-            error: "name missing"
-        })
-    }
-    if(!body.number){
-        return res.status(400).json({
-            error: "number missing"
-        })
-    }
 
     const person = new Person({
         "name": body.name,
@@ -140,11 +123,15 @@ const errorHandler = (error, request, response, next) => {
     console.log(error.message)
 
     if (error.name === 'CastError') {
-        return response.status(400).send({ error: 'malformatted id' })
+        return response.status(400).json({ error: 'malformatted id' })
+      }else if(error.name === 'ValidationError'){
+        return response.status(400).json({error: error.message})
       }
     
       next(error)
 }
+
+app.use(errorHandler)
 
 app.listen(process.env.PORT, () =>{
     console.log('Server running!')
